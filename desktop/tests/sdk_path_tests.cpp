@@ -20,7 +20,9 @@ void same_path(const fs::path& actual, const fs::path& expected, const char* des
     // Ignore the directory helper's final slash when comparing path components.
     const auto a = actual / ".";
     const auto e = expected / ".";
-    require(a.lexically_normal() == e.lexically_normal(), description);
+    if (a.lexically_normal() != e.lexically_normal())
+        throw std::runtime_error(std::string(description) + " (actual: " + actual.u8string() +
+                                 ", expected: " + expected.u8string() + ")");
 }
 } // namespace
 int main() {
@@ -53,8 +55,16 @@ int main() {
         same_path(resolve(root, invalid_component / "asset"), root / invalid_component / "asset", "Canonicalization errors must safely preserve a lexical path");
         std::error_code symlink_error;
         fs::create_directory_symlink(root / "existing/sub", root / "alias", symlink_error);
-        if (!symlink_error)
+        if (!symlink_error) {
+            same_path(resolve(root, "alias/child"), root / "existing/sub/child", "Existing symlink prefixes must resolve before missing descendants");
+#ifdef _WIN32
+            // Windows absolute paths (_fullpath in the original SDK) normalize
+            // dot segments before filesystem symlink resolution.
+            same_path(resolve(root, "alias/../asset"), root / "asset", "Windows must preserve native absolute-path dot normalization");
+#else
             same_path(resolve(root, "alias/../asset"), root / "existing/asset", "Existing symlinks must keep realpath resolution semantics");
+#endif
+        }
         require(fs::current_path() == initial_cwd, "SDK path resolution must not change process cwd");
         fs::remove_all(temp);
         std::cout << "SDK safe path regression tests passed.\n";
