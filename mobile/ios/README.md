@@ -37,6 +37,8 @@ xcodebuild -workspace SpriteFacePhone.xcworkspace -scheme SpriteFacePhone -desti
 
 GitHub Actionsの`iOS`ワークフローも生成プロジェクトのSimulatorビルドと単体テストを実行します。初回の依存取得にはネットワークが必要です。`Podfile.lock`・`Gemfile.lock`はmacOS CIで成功した依存解決のartifactから取得しています。CIでは`pod install --deployment`を使用し、Podfileとlockfileの不一致をエラーにします。
 
+テストはアプリをhostにして通常の`@testable import`で実行します。MediaPipeのPod設定がtest bundleにも伝播する`-force_load`は、テストターゲットの`OTHER_LDFLAGS`で除外しています。アプリ側で一度だけネイティブgraphを読み込むことで、同じcalculatorの二重登録による起動時クラッシュを防ぎます。テストのためにアプリ起動やカメラ権限処理を変更していません。
+
 ## PCへの接続
 
 PCでスマホ入力を開始して表示された接続QRをスキャンするか、接続URIを貼り付けます。QR表示のない環境では、IPv4・UDPポート（既定`11574`）・32桁の16進トークンを手入力します。URIを入力している場合はURIの情報を優先します。両端末は同じLANに接続し、PCの受信ポートをファイアウォールで許可します。

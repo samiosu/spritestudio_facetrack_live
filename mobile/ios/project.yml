@@ -58,13 +58,18 @@ targets:
     sources: [Tests]
     dependencies:
       - target: SpriteFacePhone
-      # MediaPipeTasksCommon force-loads its graph archive into this test bundle.
-      # Link the system zlib explicitly for its ZIP/protobuf compression symbols.
       - sdk: libz.tbd
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: org.spriteface.phone.tests
+        # MediaPipe's user xcconfig propagates -force_load even with search_paths
+        # inheritance. The hosted tests use the app's native graph; loading it
+        # again in this bundle aborts on duplicate calculator registration.
+        # Keep Pods search paths and target linkage, but override its linker flags.
+        OTHER_LDFLAGS: ""
+        "OTHER_LDFLAGS[sdk=iphonesimulator*]": ""
+        "OTHER_LDFLAGS[sdk=iphoneos*]": ""
 schemes:
   SpriteFacePhone:
     build:

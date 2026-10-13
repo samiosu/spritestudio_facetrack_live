@@ -44,6 +44,18 @@ jobs:
         run: |
           xcodegen generate
           bundle exec pod install --deployment
+      - name: Verify hosted test graph linkage
+        working-directory: mobile/ios
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          command = ['xcodebuild', '-project', 'SpriteFacePhone.xcodeproj', '-target', 'SpriteFacePhoneTests', '-sdk', 'iphonesimulator', '-showBuildSettings', '-json']
+          settings = json.loads(subprocess.check_output(command))
+          target = next(item for item in settings if item['target'] == 'SpriteFacePhoneTests')
+          if '-force_load' in target['buildSettings'].get('OTHER_LDFLAGS', ''):
+              raise SystemExit('Test bundle must use the host graph instead of force-loading a second copy')
+          print('Hosted test bundle uses the native graph from the app.')
+          PY
       - name: Compile for iOS Simulator
         working-directory: mobile/ios
         run: >-
@@ -61,15 +73,32 @@ jobs:
               raise SystemExit('No iPhone Simulator runtime is installed')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               print('udid=' + device['udid'], file=output)
+              print('state=' + device['state'], file=output)
           PY
+      - name: Boot selected iPhone Simulator
+        timeout-minutes: 8
+        run: |
+          if [ '${{ steps.simulator.outputs.state }}' != Booted ]; then
+            xcrun simctl boot '${{ steps.simulator.outputs.udid }}'
+          fi
+          xcrun simctl bootstatus '${{ steps.simulator.outputs.udid }}' -b
       - name: Verify pairing protocol and rotation math
+        timeout-minutes: 10
         working-directory: mobile/ios
         run: >-
           xcodebuild -workspace SpriteFacePhone.xcworkspace
           -scheme SpriteFacePhone
           -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}'
+          -parallel-testing-enabled NO
           -resultBundlePath TestResults.xcresult
           CODE_SIGNING_ALLOWED=NO test
+      - name: Export XCTest result summary
+        if: always()
+        working-directory: mobile/ios
+        run: |
+          if [ -d TestResults.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path TestResults.xcresult > TestResults-summary.json || true
+          fi
       - name: Preserve test results and dependency resolution
         if: always()
         uses: actions/upload-artifact@v4
@@ -77,6 +106,7 @@ jobs:
           name: ios-validation
           path: |
             mobile/ios/TestResults.xcresult
+            mobile/ios/TestResults-summary.json
             mobile/ios/Podfile.lock
             mobile/ios/Gemfile.lock
             mobile/ios/Pods/Target Support Files/Pods-SpriteFacePhone/Pods-SpriteFacePhone-acknowledgements.plist
