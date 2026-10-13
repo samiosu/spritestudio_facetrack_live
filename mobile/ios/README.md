@@ -4,7 +4,7 @@ iOS 15以上の前面カメラを持つ実機で、顔向き・まばたき・�
 
 ## ビルド（macOS）
 
-XcodeとCommand Line Tools、XcodeGen 2.38以上、CocoaPodsが必要です。MediaPipeのPodは`0.10.21`に固定しています。CocoaPodsのバージョンを揃える場合は、このディレクトリで`bundle install`し、下記の`pod install`を`bundle exec pod install`として実行します。シミュレータはカメラ動作の確認には使えません。
+XcodeとCommand Line Tools、XcodeGen 2.38以上、Ruby/Bundlerが必要です。MediaPipeのPodは`0.10.21`、CocoaPodsは`1.16.2`に固定しています。シミュレータはカメラ動作の確認には使えません。
 
 1. リポジトリ直下でモデル取得スクリプトを実行します。
 
@@ -17,13 +17,14 @@ python3 tools/fetch_models.py --target ios
 
 ```sh
 cd mobile/ios
+bundle install
 xcodegen generate
-pod install
+bundle exec pod install --deployment
 open SpriteFacePhone.xcworkspace
 ```
 
 3. Xcodeで`SpriteFacePhone`ターゲットのSigning Teamと一意のBundle Identifierを設定し、実機を選んでRunします。
-4. 初回の`pod install`で生成された`Podfile.lock`を、依存解決後の変更としてコミットします。ライブラリの直接・間接依存とバイナリのライセンスを、配布前にその版で確認してください。
+4. `Podfile.lock`と`Gemfile.lock`を使ってCIで解決した依存を再現します。ライブラリの直接・間接依存とバイナリのライセンスを、配布前にその版で確認してください。
 
 CLIでのビルド確認と単体テストは、署名設定後に行えます。
 
@@ -32,9 +33,9 @@ xcodebuild -workspace SpriteFacePhone.xcworkspace -scheme SpriteFacePhone -desti
 xcodebuild -workspace SpriteFacePhone.xcworkspace -scheme SpriteFacePhone -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
-実際にインストールしたSimulator名に合わせてdestinationを変更してください。単体テストは接続情報検証・JSON形式・角度計算を確認します。カメラ・MediaPipe・ローカルネットワークの許可・PCへの送信は実機で確認する必要があります。本リポジトリのLinux作業環境ではXcodeビルド・実機動作は未検証です。
+実際にインストールしたSimulator名に合わせてdestinationを変更してください。単体テストは接続情報検証・JSON形式・角度計算を確認します。カメラ・MediaPipe・ローカルネットワークの許可・PCへの送信は実機で確認する必要があります。SimulatorのアプリビルドはGitHub ActionsのmacOS/Xcode環境で確認しました。実機動作は未検証です。
 
-GitHub Actionsの`iOS`ワークフローも生成プロジェクトのSimulatorビルドと単体テストを実行します。初回の依存解決にはネットワークが必要です。CocoaPods本体と直接のMediaPipeバージョンを固定していますが、`Podfile.lock`・`Gemfile.lock`はmacOSで解決した後にコミットする必要があり、現段階では全間接依存を固定していません。CI設定を追加したことと、CIが実際に成功したことは別です。
+GitHub Actionsの`iOS`ワークフローも生成プロジェクトのSimulatorビルドと単体テストを実行します。初回の依存取得にはネットワークが必要です。`Podfile.lock`・`Gemfile.lock`はmacOS CIで成功した依存解決のartifactから取得しています。CIでは`pod install --deployment`を使用し、Podfileとlockfileの不一致をエラーにします。
 
 ## PCへの接続
 

@@ -30,7 +30,10 @@ not a hash of the complete package or executable.
 | stb_image | commit `2c980bb59875b0d32144a71867fbdebb2f77cd20` | [MIT / public-domain alternatives](licenses/STB-LICENSE.txt); MIT selected. Copyright (c) 2017 Sean Barrett. The SDK's older stb implementation is not compiled. |
 
 The SDK is copied into the build directory before applying SpriteFace's face-value
-hook and desktop compatibility changes. Those are modified SDK sources; the
+hook and desktop compatibility changes. Its `getFullPath` helper is also replaced
+with UTF-8 `std::filesystem` directory resolution, removing fixed-size path
+buffers and process working-directory changes while retaining its final
+directory separator. Those are modified SDK sources; the
 upstream notice stays in place and the patch/build scripts accompany the source.
 The SDK's JUCE-based Viewer and converters are not part of the SpriteFace build.
 SpriteStudio's proprietary editor, SDK sample artwork and users' character assets

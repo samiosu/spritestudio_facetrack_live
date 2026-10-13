@@ -43,7 +43,7 @@ jobs:
         working-directory: mobile/ios
         run: |
           xcodegen generate
-          bundle exec pod install
+          bundle exec pod install --deployment
       - name: Compile for iOS Simulator
         working-directory: mobile/ios
         run: >-

@@ -13,6 +13,8 @@ targets:
   SpriteFacePhone:
     type: application
     platform: iOS
+    dependencies:
+      - sdk: libz.tbd
     sources:
       - path: Sources
       - path: Resources
@@ -56,6 +58,9 @@ targets:
     sources: [Tests]
     dependencies:
       - target: SpriteFacePhone
+      # MediaPipeTasksCommon force-loads its graph archive into this test bundle.
+      # Link the system zlib explicitly for its ZIP/protobuf compression symbols.
+      - sdk: libz.tbd
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

@@ -15,6 +15,10 @@ jobs:
         with:
           python-version: '3.12'
       - uses: android-actions/setup-android@v3
+        with:
+          # The action defaults to the retired SDK package "tools".
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
       - run: python3 tools/fetch_models.py --target android
       - run: python3 tools/check_licenses.py
