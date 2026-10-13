@@ -1,0 +1,161 @@
+Source archive members: com/google/common/flogger/AbstractLogger.java, com/google/common/flogger/FluentLogger.java, com/google/common/flogger/LogContext.java, com/google/common/flogger/LogSite.java, com/google/common/flogger/LoggingApi.java, com/google/common/flogger/backend/FormatChar.java, com/google/common/flogger/backend/FormatOptions.java, com/google/common/flogger/backend/FormatType.java, com/google/common/flogger/backend/LogData.java, com/google/common/flogger/backend/LoggerBackend.java, com/google/common/flogger/backend/LoggingException.java, com/google/common/flogger/parameter/BraceStyleParameter.java, com/google/common/flogger/parameter/Parameter.java, com/google/common/flogger/parameter/SimpleParameter.java, com/google/common/flogger/parser/MessageBuilder.java, com/google/common/flogger/parser/MessageParser.java, com/google/common/flogger/parser/ParseException.java, com/google/common/flogger/util/CallerFinder.java, com/google/common/flogger/util/FastStackGetter.java
+
+/*
+ * Copyright (C) 2012 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/LazyArg.java, com/google/common/flogger/LazyArgs.java, com/google/common/flogger/backend/SimpleMessageFormatter.java, com/google/common/flogger/parameter/ParameterVisitor.java
+
+/*
+ * Copyright (C) 2017 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/LogSiteKey.java, com/google/common/flogger/LogSiteStackTrace.java, com/google/common/flogger/StackSize.java, com/google/common/flogger/backend/Metadata.java, com/google/common/flogger/backend/Platform.java, com/google/common/flogger/context/Tags.java, com/google/common/flogger/util/Checks.java
+
+/*
+ * Copyright (C) 2016 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/LogSiteMap.java, com/google/common/flogger/LoggingScope.java, com/google/common/flogger/LoggingScopeProvider.java, com/google/common/flogger/SpecializedLogSiteKey.java, com/google/common/flogger/backend/BaseMessageFormatter.java, com/google/common/flogger/backend/LogMessageFormatter.java, com/google/common/flogger/backend/MessageUtils.java, com/google/common/flogger/backend/MetadataHandler.java, com/google/common/flogger/backend/MetadataKeyValueHandlers.java, com/google/common/flogger/backend/MetadataProcessor.java, com/google/common/flogger/backend/NoOpContextDataProvider.java, com/google/common/flogger/context/ScopeMetadata.java
+
+/*
+ * Copyright (C) 2020 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/LogSiteStats.java, com/google/common/flogger/backend/TemplateContext.java, com/google/common/flogger/parameter/DateTimeFormat.java, com/google/common/flogger/parameter/DateTimeParameter.java
+
+/*
+ * Copyright (C) 2014 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/LogSites.java, com/google/common/flogger/MetadataKey.java, com/google/common/flogger/backend/KeyValueFormatter.java
+
+/*
+ * Copyright (C) 2018 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/context/ContextDataProvider.java, com/google/common/flogger/context/LogLevelMap.java, com/google/common/flogger/context/ScopeType.java, com/google/common/flogger/context/ScopedLoggingContext.java, com/google/common/flogger/context/SegmentTrie.java, com/google/common/flogger/util/StaticMethodCaller.java
+
+/*
+ * Copyright (C) 2019 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/context/ScopedLoggingContexts.java
+
+/*
+ * Copyright (C) 2021 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Source archive members: com/google/common/flogger/package-info.java, com/google/common/flogger/parameter/package-info.java, com/google/common/flogger/parser/BraceStyleMessageParser.java, com/google/common/flogger/parser/DefaultBraceStyleMessageParser.java, com/google/common/flogger/parser/DefaultPrintfMessageParser.java, com/google/common/flogger/parser/PrintfMessageParser.java, com/google/common/flogger/parser/package-info.java, com/google/common/flogger/util/StackBasedLogSite.java
+
+/*
+ * Copyright (C) 2015 The Flogger Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */

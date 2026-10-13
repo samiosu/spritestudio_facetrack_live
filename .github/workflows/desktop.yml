@@ -1,0 +1,38 @@
+name: Desktop
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Linux graphics dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev xvfb
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Retained license integrity
+        run: python tools/check_licenses.py
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Protocol and adapter tests
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: SpriteStudio render and external-face smoke test
+        if: runner.os == 'Linux'
+        run: xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 build/desktop/spriteface --smoke-test
+      - name: Collect development build
+        run: cmake --install build --config Release --prefix dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spriteface-${{ runner.os }}-development
+          path: dist

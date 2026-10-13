@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='utf-8'?>
+<SpriteStudioCellMap version="2.00.00">
+  <name>atlas</name>
+  <imagePath>atlas.png</imagePath>
+  <pixelSize>512 512</pixelSize>
+  <overrideTexSettings>1</overrideTexSettings>
+  <wrapMode>clamp</wrapMode>
+  <filterMode>linear</filterMode>
+  <cells>
+    <cell>
+      <name>head</name>
+      <pos>0 0</pos>
+      <size>256 256</size>
+      <pivot>0 0</pivot>
+      <rotated>0</rotated>
+      <ismesh>0</ismesh>
+    </cell>
+    <cell>
+      <name>body</name>
+      <pos>256 0</pos>
+      <size>256 256</size>
+      <pivot>0 0</pivot>
+      <rotated>0</rotated>
+      <ismesh>0</ismesh>
+    </cell>
+    <cell>
+      <name>eye</name>
+      <pos>0 256</pos>
+      <size>64 64</size>
+      <pivot>0 0</pivot>
+      <rotated>0</rotated>
+      <ismesh>0</ismesh>
+    </cell>
+    <cell>
+      <name>mouth</name>
+      <pos>64 256</pos>
+      <size>64 64</size>
+      <pivot>0 0</pivot>
+      <rotated>0</rotated>
+      <ismesh>0</ismesh>
+    </cell>
+    <cell>
+      <name>blush</name>
+      <pos>128 256</pos>
+      <size>64 64</size>
+      <pivot>0 0</pivot>
+      <rotated>0</rotated>
+      <ismesh>0</ismesh>
+    </cell>
+    <cell>
+      <name>ornament</name>
+      <pos>192 256</pos>
+      <size>64 64</size>
+      <pivot>0 0</pivot>
+      <rotated>0</rotated>
+      <ismesh>0</ismesh>
+    </cell>
+  </cells>
+</SpriteStudioCellMap>

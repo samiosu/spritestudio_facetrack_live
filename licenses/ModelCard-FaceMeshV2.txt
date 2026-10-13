@@ -1,0 +1,753 @@
+MODEL DETAILS
+
+A lightweight model to predict 3D facial
+su ace landmarks from monocular video
+captured by a front-facing camera on a
+sma phone in real time.
+
+Le : Input frame. Right: Output face landmarks
+
+AUTHORS
+
+MODEL SPECIFICATIONS
+Model Type
+• Convolutional Neural Network
+Model Architecture
+• Convolutional Neural Network: MobileNetV2-like
+with customized blocks for real-time
+pe ormance.
+Inputs
+• Image of cropped face with 25% margin on each
+side, and resized to 256x256.
+Output(s)
+• Facial su ace represented as 478 3D landmarks
+a ened into a 1D tensor: (x1, y1, z1), (x2, y2, z2), …
+x- and y-coordinates follow the image pixel
+coordinates; z-coordinates are relative to the
+face center of mass and are scaled propo ionally
+to the face width.
+• Face ag indicating the likelihood of the face
+being present in the input image. Used in tracking
+mode to detect that the face was lost and the
+face detector should be applied to obtain a new
+face position. Face probability threshold is set at
+0.5 by default and can be adjusted.
+• Limited set of blendshapes that includes
+cheekPu and tongueOut blendshapes that are
+intended to be used with the Blendshapes model
+(model card) and are not subject to this model
+card evaluation.
+
+Geng Yan, Google
+Ivan Grishchenko, Google
+MODEL DATE
+September 15, 2022
+LICENSED UNDER
+Apache License, Version 2.0
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+1 of 7
+
+Intended Uses
+APPLICATIONS
+
+DOMAIN & USERS
+
+OUT-OF-SCOPE APPLICATIONS
+
+● Detection of human facial
+
+● The primary intended application
+
+su ace landmark from
+monocular video .
+● Optimized for videos
+captured on front-facing
+cameras of sma phones.
+● Well suitable for mobile AR
+(augmented reality)
+applications.
+
+is AR ente ainment.
+● Intended users are people who
+use augmented reality for
+ente ainment purposes.
+
+Not appropriate for:
+● This model is not intended for
+human life-critical decisions.
+● Predicted face landmarks do
+not provide facial recognition
+or identi cation and do not
+store any unique face
+representation.
+
+Limitations
+PRESENCE OF ATTRIBUTES
+
+INPUTS
+
+ENVIRONMENT
+
+The model is intended to be
+used primarily in the tracking
+mode that guarantees ce ain
+accuracy of the face location,
+scale and rotation (see
+speci cation in “A ributes").
+
+Videos should be captured in "sel e"
+mode. As such, it's not suitable for
+detecting faces:
+● looking away from the camera
+(more than 80°),
+● inclined from the ve ical
+orientation (more than 8°),
+● only pa ially visible (less than 50%
+of the face),
+● located too far away from the
+camera (cropped face can't be
+rescaled to model input of 192x192
+without quality degradation).
+
+When degrading the
+environment light, noise, motion
+or face overlapping conditions
+one can expect degradation of
+quality and increase of “ji ering”
+(although we cover such cases
+during training with real-world
+samples and augmentations).
+
+TRADE-OFFS
+The model is optimized for
+real-time pe ormance on a
+wide variety of mobile devices,
+but is sensitive to face position,
+scale and orientation in the input
+image.
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+2 of 7
+
+Factors and Subgroups
+
+INSTRUMENTATION
+
+ENVIRONMENTS
+
+● All dataset images were captured on a diverse set of
+
+Model is trained on images with various lighting, noise
+and motion conditions and with diverse
+augmentations. However, its quality can degrade in
+extreme conditions. This may lead to increased
+“ji ering” (inter-frame prediction noise).
+
+sma phone cameras, both front- and back-facing.
+● All images were captured in a real-world
+
+environment with di erent light, noise and motion
+conditions via an AR (Augmented Reality)
+application.
+
+ATTRIBUTES
+
+GROUPS
+
+● Face cropped from the captured frame should
+
+To pe orm fairness evaluation we group user
+samples into 17 evenly distributed geographic
+subregions (based on United Nations geoscheme
+with merges and no EU countries):
+
+contain a single face placed in the center of the
+image.
+● There should be a margin around the face calculated
+as 25% of face size.
+● Image must be rotated in a way that a horizontal line
+can connect the two centers of the eyes.
+● Model is tolerant to ce ain level of input inaccuracy:
+○ 10% shi and scale (taking face width/height as
+100% for corresponding axis)
+○ 8° roll
+
+No hern Africa
+Eastern Africa
+Middle Africa
+Southern Africa
+Western Africa
+Caribbean
+Central America
+South America
+No hern America
+
+Central Asia
+Eastern Asia
+South-eastern Asia
+Southern Asia
+Western Asia
+Australia and New Zealand
+Europe (without EU)
+Melanesia, Micronesia,
+and Polynesia.
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+3 of 7
+
+Metrics
+Model Pe ormance Measures
+
+NORMALIZATION BY IC
+
+MEAN ABSOLUTE ERROR
+
+Normalization by interocular distance is applied to
+unify the scale of the samples and is taken as 100%.
+IOD is calculated as the distance between the eye
+centers (which are estimated as the centers of
+segments connecting eye corners). To accommodate
+head rotations, 3D IOD from the ground truth is
+employed.
+
+Mean absolute error is calculated as the pixel distance
+between ground truth and predicted face mesh. The
+model is providing 3D coordinates, but the
+z-coordinate is obtained from synthetic data, so for a
+fair comparison with human annotations, only 2D
+coordinates are employed.
+
+IOD MAE
+For quality and fairness evaluation, we use IOD MAE
+(Mean Absolute Error normalized by Interocular
+Distance).
+
+Evaluation Modes
+
+TRACKING MODE
+
+REACQUISITION MODE
+
+Main mode that takes place most of the time and is
+based on obtaining a highly accurate face crop from
+the prediction on the previous frame (frames 2, 3, ...
+on the image below)..
+
+Takes place when there is no information about the
+face from previous frames. It happens either on the
+rst frame (image below) or on the frames when face
+tracking is lost. In this case, an external face detector is
+being run over the whole frame. We used BlazeFace
+Detector for the evaluation of the reacquisition mode.
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+4 of 7
+
+Evaluation, Datasets and Results
+Geographical Evaluation
+
+GEOGRAPHICAL SUBREGIONS DATASET
+
+EVALUATION RESULTS
+
+● Contains 1700 samples evenly distributed across
+
+Detailed evaluation for the tracking and reacquisition
+modes across 17 geographical subregions is presented
+in the table below.
+
+17 geographical subregions (see speci cation in
+Section "3a Groups"). Each region contains 100
+images.
+● All samples are picked from the same source as
+training samples and are characterized as
+sma phone front-facing camera sel es taken in
+real-world environments (see speci cation in
+"Factors and Subgroups - Instrumentation").
+
+Region
+
+Tracking mode
+(primary)
+Mean absolute
+error
+
+Reacquisition mode
+(on the rst frame)
+
+Standard
+deviation
+
+Mean absolute
+error
+
+Standard
+deviation
+
+Australia and New Zealand
+
+2.29
+
+0.71
+
+3.00
+
+0.96
+
+Melanesia + Micronesia + Polynesia
+
+2.06
+
+0.56
+
+2.76
+
+1.02
+
+Europe
+
+3.17
+
+1.22
+
+3.73
+
+1.37
+
+Central Asia
+
+2.19
+
+0.71
+
+2.67
+
+0.90
+
+Eastern Asia
+
+2.22
+
+0.64
+
+2.81
+
+0.86
+
+Southeastern Asia
+
+2.90
+
+0.86
+
+3.50
+
+1.44
+
+Southern Asia
+
+2.97
+
+0.78
+
+3.49
+
+0.99
+
+Western Asia
+
+3.03
+
+0.95
+
+3.75
+
+1.39
+
+Caribbean
+
+2.60
+
+1.18
+
+3.27
+
+1.32
+
+Central America
+
+3.27
+
+1.23
+
+3.85
+
+1.39
+
+South America
+
+3.10
+
+1.22
+
+3.70
+
+1.64
+
+No hern America
+
+3.13
+
+1.29
+
+3.73
+
+1.60
+
+No hern Africa
+
+2.18
+
+0.58
+
+2.84
+
+0.84
+
+Eastern Africa
+
+2.16
+
+0.76
+
+2.78
+
+0.92
+
+Middle Africa
+
+2.45
+
+1.02
+
+3.09
+
+1.15
+
+Southern Africa
+
+2.35
+
+0.88
+
+3.10
+
+1.19
+
+Western Africa
+
+2.47
+
+1.04
+
+3.11
+
+1.41
+
+Total for all regions
+
+2.62
+
+1.03
+
+3.24
+
+1.29
+
+Geographical evaluation
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+5 of 7
+
+FAIRNESS CRITERIA
+We evaluate the model
+accuracy across representative
+groups, and compare the error
+range to the human annotation
+discrepancy, which is 2.56% IOD
+MAE. We ag any group that has
+a higher error rate than this
+discrepancy.
+
+FAIRNESS METRICS &
+BASELINE
+2.56% IOD MAE was
+obtained by measuring
+the discrepancy of the 11
+human annotators (same
+people used for training
+data annotation) on 58
+samples.
+
+FAIRNESS RESULTS
+Comparison with fairness goal of 2.56% IOD
+MAE discrepancy across 17 regions:
+● Tracking mode: from 2.06% to 3.27%
+(di erence of 1.21%)
+● Reacquisition mode: from 2.67% to 3.85%
+(di erence of 1.18%)
+Comparison with our fairness criteria yields a
+maximum discrepancy between best and
+worst pe orming regions of 1.21% for the
+thacking mode and 1.18% for the reacquisition
+mode. We therefore consider the models
+pe orming well across groups.
+
+Skin Tone and Gender Evaluation
+
+DATASET
+
+FAIRNESS RESULTS
+
+Contains 1700 samples, 100 from each of the 17
+geographical subregions, which were annotated with
+perceived gender (male and female) and skin tone
+(from 1 to 6) based on the Fitzpatrick scale.
+
+Comparison with fairness goal of 2.56% IOD MAE
+discrepancy across genders:
+● Tracking mode: from 2.61% to 2.62% (di erence of
+0.01%)
+● Reacquisition mode: from 3.24% to 3.25%
+(di erence of 0.01%)
+And across skin tones:
+● Tracking mode: from 2.49% to 2.90% (di erence 0.41%)
+● Reacquisition mode: from 3.09% to 3.75% (di erence
+0.66%)
+
+EVALUATION RESULTS
+Detailed evaluation for the tracking and reacquisition
+modes across genders and skin tones is presented in
+the tables below.
+
+Observed discrepancy across di erent genders and
+skin tones is less than one de ned in our fairness
+criteria. We therefore consider the model pe orming
+well across groups.
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+6 of 7
+
+Tracking mode
+(primary)
+
+Gender
+% of dataset
+
+Mean absolute
+error
+
+Male
+
+46.5%
+
+2.61
+
+Female
+
+53.5%
+
+2.62
+
+Reacquisition mode
+(on the rst frame)
+Standard
+deviation
+
+% of dataset
+
+Mean absolute
+error
+
+Standard
+deviation
+
+1.03
+
+46.6%
+
+3.25
+
+1.34
+
+1.04
+
+53.4%
+
+3.24
+
+1.24
+
+Gender evaluation
+Tracking mode
+(primary)
+
+Skin Tone Type
+% of dataset
+
+Mean
+absolute error
+
+1
+
+1.5%
+
+2.90
+
+2
+
+14.8%
+
+3
+
+Reacquisition mode
+(on the rst frame)
+Standard
+deviation
+
+% of dataset
+
+Mean
+absolute error
+
+Standard
+deviation
+
+1.51
+
+1.5%
+
+3.75
+
+2.13
+
+2.64
+
+1.00
+
+14.7%
+
+3.27
+
+1.21
+
+34.5%
+
+2.68
+
+1.03
+
+34.6%
+
+3.33
+
+1.33
+
+4
+
+28.6%
+
+2.55
+
+0.93
+
+28.6%
+
+3.13
+
+1.11
+
+5
+
+14.4%
+
+2.49
+
+1.04
+
+14.4%
+
+3.09
+
+1.24
+
+6
+
+6.3%
+
+2.77
+
+1.34
+
+6.1%
+
+3.48
+
+1.68
+
+Skin tone evaluation
+
+Release notes
+Model updates
+Model version 09/15/2022 retains the same size and
+architecture as the previous version (08/28/2022), but
+is more accurate (2.88 -> 2.76 IOD MAE), and predicts
+10 additional iris landmarks.
+
+De nitions
+Augmented Reality (AR)
+
+Landmarks
+
+Augmented reality, a technology that
+superimposes a computer-generated image on a
+user's view of the real world, thus providing a
+composite view.
+
+Facial landmarks are 2D (x, y) or 3D (x, y, z) coordinate
+locations of facial features, such as lips or eyes corners,
+points on the eyebrows, irises and face contours and
+intermediate points on cheeks and forehead.
+
+Interocular Distance (IOD)
+
+Mean Absolute Error (MAE)
+
+An estimate of the distance between the eye
+centers. To avoid gaze direction dependence, the
+eye centers are de ned as the midpoints of the
+segments connecting the eye corners.
+
+Per sample metric calculated as average 2D distance
+error over facial landmarks. To normalize scale across
+samples we divide MAE of every sample by its 3D IOD.
+
+_
+Based on Model Cards for Model Repo ing, In Proceedings of FAT* Conference (FAT*2019). ACM, New York, NY, USA
+
+7 of 7
+
+

@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "bindings": [
+    {
+      "part": "head_pivot",
+      "signal": "roll",
+      "property": "rotation_z",
+      "operation": "add",
+      "input_min": -0.6,
+      "input_max": 0.6,
+      "output_min": 34,
+      "output_max": -34
+    },
+    {
+      "part": "head_pivot",
+      "signal": "yaw",
+      "property": "position_x",
+      "operation": "add",
+      "input_min": -0.7,
+      "input_max": 0.7,
+      "output_min": -22,
+      "output_max": 22
+    },
+    {
+      "part": "head_pivot",
+      "signal": "pitch",
+      "property": "position_y",
+      "operation": "add",
+      "input_min": -0.7,
+      "input_max": 0.7,
+      "output_min": -15,
+      "output_max": 15
+    },
+    {
+      "part": "eye_left",
+      "signal": "left_eye",
+      "property": "local_scale_y",
+      "operation": "multiply",
+      "input_min": 0,
+      "input_max": 1,
+      "output_min": 0.06,
+      "output_max": 1
+    },
+    {
+      "part": "eye_right",
+      "signal": "right_eye",
+      "property": "local_scale_y",
+      "operation": "multiply",
+      "input_min": 0,
+      "input_max": 1,
+      "output_min": 0.06,
+      "output_max": 1
+    },
+    {
+      "part": "mouth",
+      "signal": "mouth_open",
+      "property": "local_scale_y",
+      "operation": "multiply",
+      "input_min": 0,
+      "input_max": 1,
+      "output_min": 0.12,
+      "output_max": 1
+    },
+    {
+      "part": "mouth",
+      "signal": "mouth_smile",
+      "property": "local_scale_x",
+      "operation": "multiply",
+      "input_min": 0,
+      "input_max": 1,
+      "output_min": 0.9,
+      "output_max": 1.3
+    }
+  ]
+}

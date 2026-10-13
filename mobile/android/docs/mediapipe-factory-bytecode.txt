@@ -1,0 +1,17 @@
+# Gradle8.11.1 AGP8.9.2 tasks-core0.10.32 instrumented runtime factory
+Compiled from "TasksStatsLoggerFactory.java"
+public final class com.google.mediapipe.tasks.core.logging.TasksStatsLoggerFactory {
+  public com.google.mediapipe.tasks.core.logging.TasksStatsLoggerFactory();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static com.google.mediapipe.tasks.core.logging.TasksStatsLogger create(android.content.Context, java.lang.String, java.lang.String);
+    Code:
+       0: aload_0
+       1: aload_1
+       2: aload_2
+       3: invokestatic  #33                 // Method com/google/mediapipe/tasks/core/logging/TasksStatsDummyLogger.create:(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)Lcom/google/mediapipe/tasks/core/logging/TasksStatsDummyLogger;
+       6: areturn
+}

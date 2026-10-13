@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<SpriteStudioProject version="2.00.01" edition="Professional">
+  <name>spriteface</name>
+  <settings>
+    <animeBaseDirectory />
+    <cellMapBaseDirectory />
+    <imageBaseDirectory />
+    <effectBaseDirectory />
+    <wrapMode>clamp</wrapMode>
+    <filterMode>linear</filterMode>
+  </settings>
+  <cellmapNames>
+    <value>atlas.ssce</value>
+  </cellmapNames>
+  <animepackNames>
+    <value>character.ssae</value>
+  </animepackNames>
+  <effectFileNames />
+</SpriteStudioProject>

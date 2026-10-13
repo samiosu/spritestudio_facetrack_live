@@ -1,0 +1,32 @@
+name: Android
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - run: python3 tools/fetch_models.py --target android
+      - run: python3 tools/check_licenses.py
+      - name: Build and test
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug lintDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spriteface-android-reports
+          path: |
+            mobile/android/app/build/reports
+            mobile/android/app/build/test-results
+      # Do not publish APKs until the native SDK's complete binary notices
+      # and device behavior have been reviewed. Source development is separate.

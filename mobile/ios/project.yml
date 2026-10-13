@@ -1,0 +1,69 @@
+name: SpriteFacePhone
+options:
+  minimumXcodeGenVersion: 2.38.0
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_BITCODE: NO
+targets:
+  SpriteFacePhone:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources
+        buildPhase: resources
+        excludes: [README.md]
+      - path: ../../licenses
+        type: folder
+        buildPhase: resources
+      - path: ../../THIRD_PARTY_NOTICES.md
+        buildPhase: resources
+      - path: ../../LICENSE
+        buildPhase: resources
+    postBuildScripts:
+      - name: Bundle CocoaPods acknowledgements
+        script: |
+          set -eu
+          mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          cp "${PODS_ROOT}/Target Support Files/Pods-SpriteFacePhone/Pods-SpriteFacePhone-acknowledgements.plist" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Acknowledgements.plist"
+        inputFiles:
+          - "$(PODS_ROOT)/Target Support Files/Pods-SpriteFacePhone/Pods-SpriteFacePhone-acknowledgements.plist"
+        outputFiles:
+          - "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Acknowledgements.plist"
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: SpriteFace Phone
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSCameraUsageDescription: 顔の動きを端末内で解析し、PCのキャラクターを動かします。QRコードの読み取りにもカメラを使用します。
+        NSLocalNetworkUsageDescription: 同じネットワークのSpriteFace PCへ顔の数値を送ります。カメラ映像は送信しません。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.spriteface.phone
+        TARGETED_DEVICE_FAMILY: "1,2"
+  SpriteFacePhoneTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: SpriteFacePhone
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: org.spriteface.phone.tests
+schemes:
+  SpriteFacePhone:
+    build:
+      targets:
+        SpriteFacePhone: all
+    test:
+      targets: [SpriteFacePhoneTests]

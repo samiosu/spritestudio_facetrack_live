@@ -1,0 +1,21 @@
+source 'https://cdn.cocoapods.org/'
+platform :ios, '15.0'
+
+target 'SpriteFacePhone' do
+  use_frameworks! :linkage => :static
+  pod 'MediaPipeTasksVision', '0.10.21'
+
+  target 'SpriteFacePhoneTests' do
+    inherit! :search_paths
+  end
+end
+
+# Keep the application and pods on the same supported deployment target.
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+    end
+  end
+end

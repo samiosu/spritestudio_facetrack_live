@@ -1,0 +1,12 @@
+# Preserve audited upstream license bytes, including original CRLF/whitespace.
+licenses/** -text whitespace=-blank-at-eol,-blank-at-eof
+mobile/android/docs/dependencies.txt -text whitespace=-blank-at-eof
+*.jar -text
+*.png -text
+*.py text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.kt text eol=lf
+*.swift text eol=lf
+*.yml text eol=lf
+gradlew text eol=lf

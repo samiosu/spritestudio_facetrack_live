@@ -1,0 +1,83 @@
+name: iOS
+
+on:
+  pull_request:
+    paths:
+      - 'mobile/ios/**'
+      - 'tools/fetch_models.py'
+      - 'licenses/**'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
+      - '.github/workflows/ios.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/ios/**'
+      - 'tools/fetch_models.py'
+      - 'licenses/**'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    # Explicit Intel runner avoids older MediaPipe XCFramework arm64-simulator gaps.
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          working-directory: mobile/ios
+          bundler-cache: true
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Download and verify Face Landmarker model
+        run: python3 tools/fetch_models.py --target ios
+      - name: Generate project and resolve exact MediaPipe version
+        working-directory: mobile/ios
+        run: |
+          xcodegen generate
+          bundle exec pod install
+      - name: Compile for iOS Simulator
+        working-directory: mobile/ios
+        run: >-
+          xcodebuild -workspace SpriteFacePhone.xcworkspace
+          -scheme SpriteFacePhone -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Select an available iPhone Simulator
+        id: simulator
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
+          device = next((device for runtime, entries in devices.items() if 'iOS' in runtime for device in entries if device.get('isAvailable') and device['name'].startswith('iPhone')), None)
+          if device is None:
+              raise SystemExit('No iPhone Simulator runtime is installed')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              print('udid=' + device['udid'], file=output)
+          PY
+      - name: Verify pairing protocol and rotation math
+        working-directory: mobile/ios
+        run: >-
+          xcodebuild -workspace SpriteFacePhone.xcworkspace
+          -scheme SpriteFacePhone
+          -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}'
+          -resultBundlePath TestResults.xcresult
+          CODE_SIGNING_ALLOWED=NO test
+      - name: Preserve test results and dependency resolution
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-validation
+          path: |
+            mobile/ios/TestResults.xcresult
+            mobile/ios/Podfile.lock
+            mobile/ios/Gemfile.lock
+            mobile/ios/Pods/Target Support Files/Pods-SpriteFacePhone/Pods-SpriteFacePhone-acknowledgements.plist
+          if-no-files-found: warn
