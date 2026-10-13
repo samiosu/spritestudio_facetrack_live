@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 samiosu
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Binary wire fixtures and state tests independent of the decoder's structs."""
 

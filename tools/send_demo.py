@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 samiosu
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Send synthetic SF1 motion to SpriteFace; this does not access a camera."""
 

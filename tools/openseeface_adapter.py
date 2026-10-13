@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 samiosu
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Bridge a separately installed OpenSeeFace tracker to SpriteFace SF1 UDP.
 

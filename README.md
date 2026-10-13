@@ -126,7 +126,10 @@ OBSでの最終配信は、この環境では検証できていません。
 
 ## ライセンスと公開
 
-自作コードと独自デモ素材はMITです。依存のライセンスは維持します。
+自作のアプリ本体と独自デモ素材はMITです。著作権者は`samiosu`です。
+`tools/openseeface_adapter.py`、`tools/send_demo.py`、`tests/test_adapter.py`は、
+GPL-3.0-or-laterです。全文は[COPYING.GPL-3](COPYING.GPL-3)にあります。
+依存のライセンスは維持します。
 [依存一覧](docs/DEPENDENCIES.md)、[サードパーティー表示](THIRD_PARTY_NOTICES.md)、
 `licenses/manifest.json`に取得元・バージョン・ライセンスを記録しています。
 GPL／LGPLも必要条件を満たしたうえで利用できます。

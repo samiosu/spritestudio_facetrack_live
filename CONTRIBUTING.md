@@ -10,5 +10,7 @@ and an entry in `docs/DEPENDENCIES.md` and `licenses/manifest.json`. GPL/LGPL/AG
 dependencies are considered according to how they are combined and distributed;
 they are not rejected merely because they use copyleft.
 
-By submitting your own contribution, you agree to license it under this project's
-MIT license. Preserve the licenses of any third-party code you contribute.
+By submitting your own contribution, you agree to license it under the license
+applicable to the changed files: MIT for the application and demo, and
+GPL-3.0-or-later for `tools/openseeface_adapter.py`, `tools/send_demo.py`, and
+`tests/test_adapter.py`. Preserve the licenses and copyrights of third-party code.

@@ -1,6 +1,8 @@
 # ソース公開とバイナリ配布
 
-初期版の自作ソース・デモはMITです。必要な依存表示は
+初期版の自作アプリ本体・デモはMITです。自作補助スクリプトとそのテストの
+GPL-3.0-or-later指定は[依存一覧](DEPENDENCIES.md)に記載しています。
+それらを配布する場合は`COPYING.GPL-3`も含めます。必要な依存表示は
 `THIRD_PARTY_NOTICES.md`、`licenses/`、`docs/DEPENDENCIES.md`にあります。
 第三者コードを自作のMITへ変更することはありません。
 

@@ -1,5 +1,7 @@
 # Original demo character
 
+Copyright (c) 2026 samiosu.
+
 The character atlas, SpriteStudio XML, and mapping are independently authored
 for SpriteFace and use the repository's MIT license. They do not include artwork
 from the SpriteStudio SDK examples.

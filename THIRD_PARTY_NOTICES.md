@@ -1,6 +1,11 @@
 # Third-party notices
 
-SpriteFace's original code is licensed under the root [MIT license](LICENSE).
+SpriteFace's original application code and demo assets are Copyright (c) 2026
+samiosu and licensed under the root [MIT license](LICENSE). The independently
+authored `tools/openseeface_adapter.py`, `tools/send_demo.py`, and
+`tests/test_adapter.py` retain their original GPL-3.0-or-later designation,
+Copyright (c) 2026 samiosu. Include [COPYING.GPL-3](COPYING.GPL-3) when distributing
+those files.
 Third-party code, fonts, models and tools keep their own licenses and copyrights.
 Distribute this file together with the complete [`licenses/`](licenses/) directory
 and the root `LICENSE` when distributing SpriteFace binaries. Do not replace

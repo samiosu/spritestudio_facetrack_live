@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 samiosu
+# SPDX-License-Identifier: MIT
 """Regenerate the independently authored SpriteFace demo (requires Pillow).
 
 These geometric illustrations and XML are original SpriteFace project assets,
