@@ -15,5 +15,7 @@ mobile/ios/Pods/
 mobile/ios/*.xcodeproj/
 mobile/ios/*.xcworkspace/
 mobile/ios/Info.plist
+mobile/ios/TestResults.xcresult/
+mobile/ios/TestResults-summary.json
 mobile/ios/Resources/face_landmarker.task
 mobile/android/app/src/main/assets/face_landmarker.task

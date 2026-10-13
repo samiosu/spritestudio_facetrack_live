@@ -33,7 +33,7 @@ xcodebuild -workspace SpriteFacePhone.xcworkspace -scheme SpriteFacePhone -desti
 xcodebuild -workspace SpriteFacePhone.xcworkspace -scheme SpriteFacePhone -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
-実際にインストールしたSimulator名に合わせてdestinationを変更してください。単体テストは接続情報検証・JSON形式・角度計算を確認します。カメラ・MediaPipe・ローカルネットワークの許可・PCへの送信は実機で確認する必要があります。SimulatorのアプリビルドはGitHub ActionsのmacOS/Xcode環境で確認しました。実機動作は未検証です。
+実際にインストールしたSimulator名に合わせてdestinationを変更してください。単体テストは接続情報検証・JSON形式・角度計算を確認します。[GitHub Actionsの検証](https://github.com/samiosu/spritestudio_facetrack_live/actions/runs/38353822046)で、Simulatorのアプリビルドと3件のXCTest成功を確認しました（失敗0件・スキップ0件、iPhone 16 Pro / iOS Simulator 18.6 / x86_64）。カメラ・MediaPipe・ローカルネットワークの許可・PCへの送信は実機で確認する必要があります。実機動作は未検証です。
 
 GitHub Actionsの`iOS`ワークフローも生成プロジェクトのSimulatorビルドと単体テストを実行します。初回の依存取得にはネットワークが必要です。`Podfile.lock`・`Gemfile.lock`はmacOS CIで成功した依存解決のartifactから取得しています。CIでは`pod install --deployment`を使用し、Podfileとlockfileの不一致をエラーにします。
 

@@ -48,9 +48,9 @@ cmake --build build --config Release --parallel 4
 .\build\desktop\Release\spriteface.exe
 ```
 
-Linuxのビルドと仮想ディスプレイ上の描画を検証しています。
-WindowsはCIビルド設定を用意しましたが、このワークスペースでは未実行です。
-macOSのPCビルドも未検証です。iOSアプリのビルドにはmacOSとXcodeが必要です。
+Linuxのビルドと仮想ディスプレイ上の描画、WindowsのGitHub Actions上での
+Releaseビルドとテストを検証しています。Windowsの実画面での描画と
+macOSのPCビルドは未検証です。iOSアプリのビルドにはmacOSとXcodeが必要です。
 
 GUIを使わずに通信だけ確認する場合:
 
@@ -122,7 +122,7 @@ python3 tools/check_licenses.py
 通信の異常値、セッショントークン、順序逆転、シーケンスの周回、停止後の復帰、
 平滑化、OpenSeeFace変換をテストしています。実機のスマホカメラ、Wi-Fi接続、
 OBSでの最終配信は、この環境では検証できていません。
-[ローカルでの確認結果](docs/VALIDATION.md)に詳細を記録しています。
+[検証結果](docs/VALIDATION.md)に詳細を記録しています。
 
 ## ライセンスと公開
 
