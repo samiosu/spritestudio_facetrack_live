@@ -14,11 +14,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install adapter crypto dependency
+        run: python -m pip install -r tools/requirements.txt
       - name: Linux graphics dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev xvfb
+          sudo apt-get install -y libssl-dev libgl1-mesa-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev xvfb
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Retained license integrity

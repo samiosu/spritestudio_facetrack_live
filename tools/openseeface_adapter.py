@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 samiosu
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Bridge a separately installed OpenSeeFace tracker to SpriteFace SF1 UDP.
+"""Bridge a separately installed OpenSeeFace tracker to SpriteFace SF2 UDP.
 
 This file does not run face recognition and contains no OpenSeeFace source or
 model weights. Its independently written decoder follows the upstream packet
@@ -26,6 +26,9 @@ import struct
 import sys
 import time
 from typing import Any
+from cryptography.exceptions import InvalidTag
+
+from secure_packet import challenge, open_packet, seal, valid_challenge
 
 
 RECORD_SIZE = 1785
@@ -191,21 +194,55 @@ class LatestFace:
         return face_values(face, self.min_confidence)
 
 
-class SF1Sender:
-    """Small shared standard-library sender for the adapter and demo tool."""
+class SF2Sender:
+    """Authenticated sender shared by the adapter and synthetic demo."""
 
     def __init__(self, host: str, port: int, token: str):
         self.destination = (socket.gethostbyname(host), port)
         self.token = token
         self.seq = 0
+        self.client = challenge()
+        self.server: str | None = None
+        self.next_hello = 0.0
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.connect(self.destination)
+        self.socket.setblocking(False)
 
-    def send(self, values: dict[str, Any]) -> None:
-        frame = {"v": 1, "type": "frame", "token": self.token, "seq": self.seq,
+    def send(self, values: dict[str, Any] | None) -> bool:
+        for _ in range(32):
+            try:
+                response = json.loads(open_packet(self.socket.recv(2048), self.token))
+            except BlockingIOError:
+                break
+            except (ConnectionRefusedError, ConnectionResetError):
+                # Connected UDP reports an absent peer through recv on some OSes.
+                # Keep the sender alive so the next hello can pair after restart.
+                self.server = None
+                break
+            except (ValueError, UnicodeError, InvalidTag, AttributeError, TypeError):
+                continue
+            if response.get("v") != 1 or response.get("client") != self.client:
+                continue
+            if response.get("type") == "ready" and valid_challenge(response.get("server", "")):
+                if self.server != response["server"]:
+                    self.seq = 0
+                self.server = response["server"]
+            elif response.get("type") == "busy":
+                self.server = None
+        now = time.monotonic()
+        if now >= self.next_hello:
+            hello = {"v": 1, "type": "hello", "token": self.token, "client": self.client}
+            self.socket.send(seal(json.dumps(hello, separators=(",", ":")).encode(), self.token))
+            self.next_hello = now + 1.0
+        if self.server is None or values is None:
+            return False
+        frame = {"v": 1, "type": "frame", "token": self.token, "client": self.client,
+                 "server": self.server, "seq": self.seq,
                  **values}
         encoded = json.dumps(frame, separators=(",", ":"), allow_nan=False).encode("utf-8")
-        self.socket.sendto(encoded, self.destination)
+        self.socket.send(seal(encoded, self.token))
         self.seq = (self.seq + 1) & 0xFFFFFFFF
+        return True
 
     def close(self) -> None:
         self.socket.close()
@@ -242,7 +279,7 @@ def add_sender_arguments(parser: argparse.ArgumentParser) -> None:
                         help="SpriteFace's 32-hex-character pairing token")
     parser.add_argument("--host", default="127.0.0.1", help="SpriteFace receiver host")
     parser.add_argument("--port", type=port_argument, default=11574,
-                        help="SpriteFace SF1 UDP port (default: 11574)")
+                        help="SpriteFace SF2 UDP port (default: 11574)")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -268,7 +305,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         receiver.bind(("127.0.0.1", args.listen_port))
         receiver.setblocking(False)
-        sender = SF1Sender(args.host, args.port, args.token)
+        sender = SF2Sender(args.host, args.port, args.token)
         state = LatestFace(args.face_id, args.timeout, args.min_confidence)
         print(f"OpenSeeFace bridge: 127.0.0.1:{args.listen_port} -> "
               f"{args.host}:{args.port}; face ID {args.face_id}", flush=True)
@@ -292,8 +329,7 @@ def main(argv: list[str] | None = None) -> int:
             now = time.monotonic()
             if now >= next_send:
                 values = state.poll(now)
-                if values is not None:
-                    sender.send(values)
+                sender.send(values)
                 next_send = now + interval
     except KeyboardInterrupt:
         if sender is not None:

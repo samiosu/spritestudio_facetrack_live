@@ -1,13 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://spriteface.invalid/protocol/face-frame-v1",
-  "title": "SpriteFace SF1 frame",
+  "$id": "https://spriteface.invalid/protocol/face-frame-v2",
+  "title": "SpriteFace SF2 decrypted frame",
   "type": "object",
-  "required": ["v", "type", "token", "seq", "tracking", "confidence", "head", "eyes", "mouth"],
+  "required": ["v", "type", "token", "client", "server", "seq", "tracking", "confidence", "head", "eyes", "mouth"],
   "properties": {
     "v": {"const": 1},
     "type": {"const": "frame"},
     "token": {"type": "string", "pattern": "^[0-9a-fA-F]{32}$"},
+    "client": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "server": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
     "seq": {"type": "integer", "minimum": 0, "maximum": 4294967295},
     "tracking": {"type": "boolean"},
     "confidence": {"type": "number", "minimum": 0, "maximum": 1},

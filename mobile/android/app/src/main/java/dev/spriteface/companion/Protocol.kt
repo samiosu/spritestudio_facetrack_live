@@ -37,7 +37,7 @@ data class PairConfig(val host: String, val port: Int, val token: String) {
                 }
                 values[key] = URLDecoder.decode(pair[1], "UTF-8")
             }
-            require(values["v"] == "1") { "未対応のプロトコルです" }
+            require(values["v"] == "2") { "未対応のプロトコルです" }
             return PairConfig(
                 values["host"] ?: error("PCアドレスがありません"),
                 values["port"]?.toIntOrNull() ?: error("ポートが不正です"),

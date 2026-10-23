@@ -1,63 +1,39 @@
-# SpriteFace SF1 UDP protocol
+# SpriteFace SF2 UDP protocol
 
-The PC renderer accepts UTF-8 JSON UDP datagrams up to **2,048 bytes** on IPv4
-port **11574**. The local OpenSeeFace adapter listens separately on loopback
-port **11573**, using OpenSeeFace's binary protocol. Do not point OpenSeeFace
-directly at the SF1 port.
+The PC accepts IPv4 UDP datagrams up to **2,048 bytes** on port **11574**. Every datagram, including pairing replies, uses this binary envelope:
 
-```json
-{"v":1,"type":"frame","token":"0123456789abcdef0123456789abcdef","seq":42,"tracking":true,"confidence":1,"head":{"yaw":0.1,"pitch":0,"roll":0},"eyes":{"left":1,"right":0.8},"mouth":{"open":0.4,"smile":0.2}}
+```text
+ASCII "SF2" (3 bytes) || random nonce (12 bytes) || AES-128-GCM ciphertext || tag (16 bytes)
 ```
 
-The token above is a public example, not a production session token. The PC
-creates a fresh 128-bit token for each session. Hexadecimal tokens are
-canonicalized to lowercase. Fields are validated before
-updating any state. Nonfinite values, invalid types, missing features, values
-outside the ranges in `face-frame.schema.json`, unsupported versions and invalid
-tokens are rejected. Unknown extension fields are ignored.
+The 32-hex-digit pairing token is decoded into the 16-byte AES key. The ASCII `SF2` prefix is authenticated as additional data. A fresh, cryptographically random 12-byte nonce is generated for **each packet**, in either direction. The PC rejects plaintext, older wire formats, wrong keys, modified packets and oversized packets without processing their JSON. The token appears in the QR or manual pairing input; it never appears in cleartext UDP traffic. Keep the QR and token private. Rotate the token when pairing with a different device.
+
+The decrypted content is UTF-8 JSON. Its `v` field remains `1` to preserve the face-value schema, but the wire envelope and QR URI are **version 2**. A face frame contains:
+
+```json
+{"v":1,"type":"frame","token":"0123456789abcdef0123456789abcdef","client":"11111111111111111111111111111111","server":"22222222222222222222222222222222","seq":42,"tracking":true,"confidence":1,"head":{"yaw":0.1,"pitch":0,"roll":0},"eyes":{"left":1,"right":0.8},"mouth":{"open":0.4,"smile":0.2}}
+```
+
+The values above are examples only. The `token`, `client` and `server` fields are **inside the authenticated ciphertext**. `client` and `server` are fresh 128-bit random challenges for the current connection. The server validates them before accepting a frame. `seq` is an unsigned 32-bit counter that increases modulo 2^32 in that connection. Duplicate or older sequences are rejected even after the previous frame expires. New connections require a new challenge exchange.
 
 | Field | Convention |
 | --- | --- |
-| `seq` | Unsigned 32-bit sequence, increasing modulo 2^32; one sequence per sender |
-| `tracking` | Face is available; false causes all features to become neutral |
-| `confidence` | 0–1 availability/confidence indicator; current mobile clients use 1/0, not a calibrated confidence score |
-| `head` | Radians, unmirrored input; Euler decomposition `Rz(roll) * Ry(yaw) * Rx(pitch)` |
+| `tracking` | Face available; false resets features to neutral |
+| `confidence` | 0–1 availability indicator; mobile clients currently use 1/0 |
+| `head` | Radians, unmirrored input; `Rz(roll) * Ry(yaw) * Rx(pitch)` |
 | `eyes.left/right` | Subject's anatomical left/right; 0 closed, 1 open |
 | `mouth.open/smile` | 0–1 expression weights |
 
-MediaPipe clients normalize rotation-matrix columns, then calculate
-`yaw = asin(-R20)`, `pitch = atan2(R21,R22)`, `roll = atan2(R10,R00)`.
-The preview may be mirrored, but the image passed to inference is not. No device
-timestamps are compared across machines. The PC uses a monotonic local receive
-time. OpenSeeFace expression features are relative to its running calibration;
-the adapter converts its official pose offsets to this convention.
-
-Each accepted frame replaces the previous sample. Duplicates and older sequences
-are discarded. A first active peer is pinned by its IPv4 address and source port.
-Another peer can take over after **800 ms** without an accepted frame; this also
-allows sequence reset after a stopped client restarts. Received `tracking:false`
-frames remain live connection traffic. A lost face or stale connection decays
-smoothly toward neutral on the rendering thread.
+MediaPipe clients normalize rotation-matrix columns, then calculate `yaw = asin(-R20)`, `pitch = atan2(R21,R22)` and `roll = atan2(R10,R00)`. The PC uses local monotonic receive time; it does not compare clocks across devices. A stale face smoothly returns to neutral. The local OpenSeeFace adapter listens on **127.0.0.1:11573** for OpenSeeFace's separate binary protocol, then sends encrypted SF2 datagrams to the PC receiver. Do not point OpenSeeFace directly at port 11574.
 
 ## Pairing
 
-QR content (with a fresh real session token) is:
+The PC displays a fresh token and a QR URI:
 
 ```text
-spriteface://pair?v=1&host=192.168.1.10&port=11574&token=0123456789abcdef0123456789abcdef
+spriteface://pair?v=2&host=192.168.1.10&port=11574&token=0123456789abcdef0123456789abcdef
 ```
 
-Use the PC's reachable LAN IPv4 address, not `127.0.0.1` or `0.0.0.0`. Phones
-need camera permission and any local-network permission required by their OS.
-Initial scope is one phone and a PC on the same trusted LAN, using unicast UDP.
+Use the PC's reachable LAN IPv4 address. The sender creates a fresh `client` challenge and sends an encrypted `{"v":1,"type":"hello","token":"...","client":"..."}` from the socket used for frames. The PC replies on that socket with an encrypted `ready` containing the matching `client` and a fresh `server` challenge. While another sender has delivered a frame within 800 ms, the PC instead returns encrypted `busy`. Invalid packets receive no reply. A retry of the same hello keeps its challenge; a new connection gets a new server challenge. Senders repeat hello every second to recover after a PC restart and use the latest server challenge in subsequent frames. A replayed old hello can elicit a new ready, but its old frames cannot match the new server challenge.
 
-The client sends `{"v":1,"type":"hello","token":"..."}` from the same UDP
-socket used for frames. A valid request receives `{"v":1,"type":"ready"}`.
-If another active sender holds the session, the reply is `{"v":1,"type":"busy"}`.
-Invalid requests receive no reply. The hello exchange does not refresh the face
-sample. Clients must only accept a reply from their configured PC endpoint.
-
-The token prevents accidental cross-session control. **UDP traffic is not
-encrypted**, and pairing does not authenticate a device against a hostile LAN.
-This listener is not intended for exposure to the public Internet. A future
-remote transport can reuse these features with authenticated encryption.
+The receiver pins the active IPv4 address and UDP source port. Another sender may pair after 800 ms without an accepted frame. The token is a shared key, so anyone who obtains it can pair; transport encryption does not prevent use of a disclosed QR/token. The listener is intended for direct PC and phone use on a LAN, with no router port forwarding.

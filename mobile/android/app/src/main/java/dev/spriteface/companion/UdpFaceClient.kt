@@ -20,6 +20,8 @@ class UdpFaceClient(private val config: PairConfig, private val status: (String)
     private val sender = Executors.newSingleThreadScheduledExecutor()
     private var socket: DatagramSocket? = null
     private val sequence = AtomicLong(0L)
+    private val clientChallenge = SecurePacket.challenge()
+    @Volatile private var serverChallenge: String? = null
     private var nextHelloMs = 0L
     private var announcedWaiting = false
 
@@ -51,9 +53,19 @@ class UdpFaceClient(private val config: PairConfig, private val status: (String)
             try {
                 val packet = DatagramPacket(bytes, bytes.size)
                 udp.receive(packet)
-                val json = JSONObject(String(packet.data, 0, packet.length, Charsets.UTF_8))
-                if (json.optInt("v") == 1 && json.optString("type") == "ready" && ready.compareAndSet(false, true)) {
-                    status("PCと接続しました。顔をカメラに向けてください")
+                val json = JSONObject(SecurePacket.open(packet.data, packet.length, config.token))
+                if (json.optInt("v") != 1 || json.optString("client") != clientChallenge) continue
+                if (json.optString("type") == "ready") {
+                    val server = json.optString("server")
+                    if (!SecurePacket.validChallenge(server)) continue
+                    if (serverChallenge != server) sequence.set(0L)
+                    serverChallenge = server
+                    if (ready.compareAndSet(false, true)) {
+                        status("PCと接続しました。顔をカメラに向けてください")
+                    }
+                } else if (json.optString("type") == "busy") {
+                    ready.set(false)
+                    serverChallenge = null
                 }
             } catch (_: SocketTimeoutException) {
                 // Expected while idle or waiting for the PC.
@@ -67,30 +79,33 @@ class UdpFaceClient(private val config: PairConfig, private val status: (String)
         if (stopped.get()) return
         try {
             val now = SystemClock.elapsedRealtime()
-            if (!ready.get()) {
-                if (now >= nextHelloMs) {
-                    send("""{"v":1,"type":"hello","token":"${config.token.lowercase()}"}""")
-                    nextHelloMs = now + 1000
-                    if (!announcedWaiting) {
-                        status("PCの応答を待っています。同じLANと受信設定を確認してください")
-                        announcedWaiting = true
-                    }
+            if (now >= nextHelloMs) {
+                send("""{"v":1,"type":"hello","token":"${config.token.lowercase()}","client":"$clientChallenge"}""")
+                nextHelloMs = now + 1000
+                if (!ready.get() && !announcedWaiting) {
+                    status("PCの応答を待っています。同じLANと受信設定を確認してください")
+                    announcedWaiting = true
                 }
+            }
+            val server = serverChallenge
+            if (!ready.get() || server == null) {
                 return
             }
             val frame = latest.get().let { if (now - it.capturedAtMs <= 500) it else FaceFrame() }
-            send(frame.encode(config.token, sequence.getAndIncrement()))
+            send(JSONObject(frame.encode(config.token, sequence.getAndIncrement()))
+                .put("client", clientChallenge).put("server", server).toString())
         } catch (_: Exception) {
             // A temporarily unreachable receiver is retried, without blocking the camera.
             if (!stopped.get()) {
                 ready.set(false)
+                serverChallenge = null
                 announcedWaiting = false
             }
         }
     }
 
     @Synchronized private fun send(json: String) {
-        val bytes = json.toByteArray(Charsets.UTF_8)
+        val bytes = SecurePacket.seal(json, config.token)
         socket?.send(DatagramPacket(bytes, bytes.size))
     }
 
@@ -100,7 +115,9 @@ class UdpFaceClient(private val config: PairConfig, private val status: (String)
         sender.execute {
             synchronized(this) {
                 try {
-                    if (ready.get()) send(FaceFrame().encode(config.token, sequence.getAndIncrement()))
+                    val server = serverChallenge
+                    if (ready.get() && server != null) send(JSONObject(FaceFrame().encode(config.token, sequence.getAndIncrement()))
+                        .put("client", clientChallenge).put("server", server).toString())
                 } catch (_: Exception) { /* The peer can use its stale-frame timeout. */ }
                 socket?.close()
                 socket = null

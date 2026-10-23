@@ -5,7 +5,7 @@ final class ProtocolTests: XCTestCase {
     private let token = "0123456789abcdef0123456789abcdef"
 
     func testPairingValidatesEndpointAndCapability() throws {
-        let pairing = try Pairing(uri: "spriteface://pair?v=1&host=192.168.1.2&port=11574&token=\(token)")
+        let pairing = try Pairing(uri: "spriteface://pair?v=2&host=192.168.1.2&port=11574&token=\(token)")
         XCTAssertEqual(pairing.host, "192.168.1.2")
         XCTAssertEqual(pairing.port, 11574)
         XCTAssertEqual(pairing.token, token)
@@ -14,8 +14,24 @@ final class ProtocolTests: XCTestCase {
         }
         XCTAssertThrowsError(try Pairing(host: "192.168.1.2", port: "65536", token: token))
         XCTAssertThrowsError(try Pairing(host: "192.168.1.2", port: "11574", token: "wrong"))
-        XCTAssertThrowsError(try Pairing(uri: "spriteface://pair?v=1&host=192.168.1.2&port=11574&token=\(token)&host=127.0.0.1"))
-        XCTAssertThrowsError(try Pairing(uri: "spriteface://pair?v=2&host=192.168.1.2&port=11574&token=\(token)"))
+        XCTAssertThrowsError(try Pairing(uri: "spriteface://pair?v=2&host=192.168.1.2&port=11574&token=\(token)&host=127.0.0.1"))
+        XCTAssertThrowsError(try Pairing(uri: "spriteface://pair?v=1&host=192.168.1.2&port=11574&token=\(token)"))
+    }
+
+    func testEncryptedEnvelopeRejectsPlaintextAndTampering() throws {
+        let plaintext = Data("{\"type\":\"frame\"}".utf8)
+        let packet = try SecurePacket.seal(plaintext, token: token)
+        XCTAssertTrue(packet.starts(with: Data("SF2".utf8)))
+        XCTAssertEqual(try SecurePacket.open(packet, token: token), plaintext)
+        let secondPacket = try SecurePacket.seal(plaintext, token: token)
+        XCTAssertNotEqual(packet, secondPacket)
+        XCTAssertEqual(try SecurePacket.open(secondPacket, token: token), plaintext)
+        XCTAssertThrowsError(try SecurePacket.open(plaintext, token: token))
+        XCTAssertThrowsError(try SecurePacket.open(packet, token: String(repeating: "f", count: 32)))
+        var tampered = packet
+        tampered[tampered.index(before: tampered.endIndex)] ^= 1
+        XCTAssertThrowsError(try SecurePacket.open(tampered, token: token))
+        XCTAssertTrue(SecurePacket.validChallenge(SecurePacket.challenge()))
     }
 
     func testNeutralFrameMatchesWireProtocol() throws {

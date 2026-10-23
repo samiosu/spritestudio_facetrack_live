@@ -11,18 +11,33 @@ class ProtocolTest {
 
     @Test fun validPairUri() {
         assertEquals(PairConfig("192.168.1.5", 11574, token),
-            PairConfig.parse("spriteface://pair?v=1&host=192.168.1.5&port=11574&token=$token"))
+            PairConfig.parse("spriteface://pair?v=2&host=192.168.1.5&port=11574&token=$token"))
     }
 
     @Test fun rejectUntrustedPairValues() {
         for (suffix in listOf("&host=10.0.0.1", "&extra=value", "#fragment")) {
             assertThrows(IllegalArgumentException::class.java) {
-                PairConfig.parse("spriteface://pair?v=1&host=192.168.1.5&port=11574&token=$token$suffix")
+                PairConfig.parse("spriteface://pair?v=2&host=192.168.1.5&port=11574&token=$token$suffix")
             }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PairConfig.parse("spriteface://pair?v=1&host=192.168.1.5&port=11574&token=$token")
         }
         for (host in listOf("example.org", "1.2.3.256", "01.2.3.4", "239.1.1.1", "0.0.0.0", "0.1.2.3")) {
             assertThrows(IllegalArgumentException::class.java) { PairConfig(host, 11574, token) }
         }
+    }
+
+    @Test fun encryptedPacketRejectsPlaintextAndTampering() {
+        val text = "{\"type\":\"frame\"}"
+        val packet = SecurePacket.seal(text, token)
+        assertTrue(packet.copyOfRange(0, 3).contentEquals("SF2".toByteArray()))
+        assertFalse(String(packet, Charsets.ISO_8859_1).contains(text))
+        assertEquals(text, SecurePacket.open(packet, packet.size, token))
+        assertThrows(Exception::class.java) { SecurePacket.open(text.toByteArray(), text.length, token) }
+        packet[packet.lastIndex] = (packet.last().toInt() xor 1).toByte()
+        assertThrows(Exception::class.java) { SecurePacket.open(packet, packet.size, token) }
+        assertTrue(SecurePacket.validChallenge(SecurePacket.challenge()))
     }
 
     @Test fun yawUsesColumnMajorRadians() {

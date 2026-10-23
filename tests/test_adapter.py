@@ -9,10 +9,12 @@ import socket
 import struct
 import sys
 import unittest
+from unittest.mock import Mock
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
 sys.path.insert(0, str(TOOLS))
 import openseeface_adapter as bridge
+import secure_packet
 from send_demo import demo_values
 
 
@@ -99,24 +101,83 @@ class AdapterTests(unittest.TestCase):
             self.assertTrue(all(-math.pi <= value <= math.pi
                                 for value in values["head"].values()))
 
-    def test_actual_udp_envelope_and_sequence_wrap(self):
+    def test_actual_udp_envelope_and_handshake(self):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
             receiver.bind(("127.0.0.1", 0))
             receiver.settimeout(1.0)
-            sender = bridge.SF1Sender("127.0.0.1", receiver.getsockname()[1], "a" * 32)
+            sender = bridge.SF2Sender("127.0.0.1", receiver.getsockname()[1], "a" * 32)
             try:
+                self.assertFalse(sender.send(demo_values(1.0)))
+                hello_packet, source = receiver.recvfrom(4096)
+                self.assertTrue(hello_packet.startswith(b"SF2"))
+                self.assertNotIn(b"a" * 32, hello_packet)
+                hello = json.loads(secure_packet.open_packet(hello_packet, "a" * 32))
+                server = "b" * 32
+                receiver.sendto(secure_packet.seal(json.dumps({
+                    "v": 1, "type": "ready", "client": hello["client"], "server": server,
+                }).encode(), "a" * 32), source)
                 sender.seq = 0xFFFFFFFF
-                sender.send(demo_values(1.0))
-                sender.send(bridge.neutral_values())
-                first = json.loads(receiver.recv(4096))
-                second = json.loads(receiver.recv(4096))
+                self.assertTrue(sender.send(demo_values(1.0)))
+                self.assertTrue(sender.send(bridge.neutral_values()))
+                first_packet = receiver.recv(4096)
+                second_packet = receiver.recv(4096)
+                first = json.loads(secure_packet.open_packet(first_packet, "a" * 32))
+                second = json.loads(secure_packet.open_packet(second_packet, "a" * 32))
                 self.assertEqual((first["v"], first["type"], first["token"]),
                                  (1, "frame", "a" * 32))
-                self.assertEqual((first["seq"], second["seq"]), (0xFFFFFFFF, 0))
+                self.assertEqual((first["client"], first["server"]), (hello["client"], server))
+                self.assertEqual((first["seq"], second["seq"]), (0, 1))
                 self.assertTrue(first["tracking"])
                 self.assertFalse(second["tracking"])
             finally:
                 sender.close()
+
+    def test_sf2_rejects_plaintext_tampering_and_wrong_key(self):
+        token = "a" * 32
+        packet = secure_packet.seal(b'{"type":"frame"}', token)
+        self.assertEqual(secure_packet.open_packet(packet, token), b'{"type":"frame"}')
+        with self.assertRaises(ValueError):
+            secure_packet.open_packet(b'{"type":"frame"}', token)
+        tampered = bytearray(packet)
+        tampered[-1] ^= 1
+        with self.assertRaises(Exception):
+            secure_packet.open_packet(bytes(tampered), token)
+        with self.assertRaises(Exception):
+            secure_packet.open_packet(packet, "b" * 32)
+
+    def test_idle_sender_retries_hello_with_fresh_nonce(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
+            receiver.bind(("127.0.0.1", 0))
+            receiver.settimeout(1.0)
+            sender = bridge.SF2Sender("127.0.0.1", receiver.getsockname()[1], "a" * 32)
+            try:
+                self.assertFalse(sender.send(None))
+                first = receiver.recv(4096)
+                sender.next_hello = 0
+                self.assertFalse(sender.send(None))
+                second = receiver.recv(4096)
+                self.assertNotEqual(first, second)
+                self.assertEqual(secure_packet.open_packet(first, "a" * 32),
+                                 secure_packet.open_packet(second, "a" * 32))
+            finally:
+                sender.close()
+
+    def test_absent_udp_peer_does_not_stop_reconnect(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as receiver:
+            receiver.bind(("127.0.0.1", 0))
+            sender = bridge.SF2Sender("127.0.0.1", receiver.getsockname()[1], "a" * 32)
+            actual_socket = sender.socket
+            try:
+                sender.socket = Mock()
+                sender.socket.recv.side_effect = ConnectionResetError("UDP peer unavailable")
+                sender.server = "b" * 32
+                self.assertFalse(sender.send(None))
+                self.assertIsNone(sender.server)
+                self.assertEqual(sender.socket.send.call_count, 1)
+                self.assertEqual(json.loads(secure_packet.open_packet(
+                    sender.socket.send.call_args.args[0], "a" * 32))["type"], "hello")
+            finally:
+                actual_socket.close()
 
 
 if __name__ == "__main__":

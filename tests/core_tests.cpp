@@ -1,4 +1,5 @@
 #include "spriteface/face.hpp"
+#include "spriteface/secure_packet.hpp"
 #include <nlohmann/json.hpp>
 #include <cmath>
 #include <functional>
@@ -80,6 +81,18 @@ void filter_test() {
     for (int i = 0; i < 60; ++i) b = many.update(sample, 1.0f / 60.0f);
     expect(!b.tracking && std::abs(b.yaw) < 1e-5 && b.left_eye > 0.9999 && b.mouth_open < 1e-5, "stale filter did not return to neutral");
 }
+void encryption_test() {
+    const std::string plaintext = "{\"type\":\"hello\"}";
+    const auto encrypted = spriteface::seal_packet(plaintext, token);
+    expect(encrypted.substr(0, 3) == "SF2" && encrypted.find(plaintext) == std::string::npos,
+           "packet was not encrypted");
+    expect(spriteface::open_packet(encrypted, token) == plaintext, "AES-GCM roundtrip failed");
+    rejects([&] { spriteface::open_packet(plaintext, token); });
+    rejects([&] { spriteface::open_packet(encrypted, "ffffffffffffffffffffffffffffffff"); });
+    auto tampered = encrypted;
+    tampered.back() ^= 1;
+    rejects([&] { spriteface::open_packet(tampered, token); });
+}
 struct Sender {
 #ifdef _WIN32
     SOCKET socket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -112,30 +125,56 @@ void receiver_test() {
     expect(receiver.port() != 0 && !receiver.snapshot().fresh, "initial receiver state is wrong");
     {
         Sender sender(receiver.port()), other(receiver.port());
-        sender.send("{\"v\":1,\"type\":\"hello\",\"token\":\"" + token + "\"}");
-        expect(nlohmann::json::parse(sender.reply())["type"] == "ready", "pairing handshake failed");
+        const std::string client = "11111111111111111111111111111111";
+        const std::string other_client = "22222222222222222222222222222222";
+        const auto hello = [&](const std::string& id) {
+            return nlohmann::json{{"v", 1}, {"type", "hello"}, {"token", token}, {"client", id}}.dump();
+        };
+        sender.send(hello(client)); // Plaintext is never accepted.
+        eventually([&] { return receiver.snapshot().rejected == 1; });
+        sender.send(spriteface::seal_packet(hello(client), token));
+        const auto ready = nlohmann::json::parse(spriteface::open_packet(sender.reply(), token));
+        expect(ready["type"] == "ready" && ready["client"] == client, "pairing handshake failed");
+        const std::string server = ready["server"];
+        auto frame_packet = [&](const spriteface::FaceFrame& frame, const std::string& key,
+                                const std::string& client_id, const std::string& server_id) {
+            auto payload = nlohmann::json::parse(spriteface::encode_face_packet(frame, key));
+            payload["client"] = client_id;
+            payload["server"] = server_id;
+            return spriteface::seal_packet(payload.dump(), key);
+        };
         spriteface::FaceFrame frame; frame.tracking = true; frame.confidence = 1; frame.seq = UINT32_MAX;
-        sender.send(spriteface::encode_face_packet(frame, token));
+        sender.send(frame_packet(frame, token, client, server));
         eventually([&] { return receiver.snapshot().accepted == 1; });
         frame.seq = 0;
-        sender.send(spriteface::encode_face_packet(frame, token));
+        const auto replay = frame_packet(frame, token, client, server);
+        sender.send(replay);
         eventually([&] { return receiver.snapshot().accepted == 2; });
-        sender.send(spriteface::encode_face_packet(frame, token)); // Duplicate.
+        sender.send(replay); // Duplicate ciphertext, including nonce.
         frame.seq = UINT32_MAX;
-        sender.send(spriteface::encode_face_packet(frame, token)); // Out of order.
+        sender.send(frame_packet(frame, token, client, server)); // Out of order.
         frame.seq = 1;
-        other.send(spriteface::encode_face_packet(frame, token)); // Different active peer.
-        sender.send(spriteface::encode_face_packet(frame, "ffffffffffffffffffffffffffffffff"));
-        eventually([&] { return receiver.snapshot().rejected == 4; });
+        other.send(frame_packet(frame, token, client, server)); // Different active peer.
+        sender.send(frame_packet(frame, "ffffffffffffffffffffffffffffffff", client, server));
+        eventually([&] { return receiver.snapshot().rejected == 5; });
         expect(receiver.snapshot().accepted == 2 && receiver.snapshot().fresh, "invalid frame changed state");
-        other.send("{\"v\":1,\"type\":\"hello\",\"token\":\"" + token + "\"}");
-        expect(nlohmann::json::parse(other.reply())["type"] == "busy", "active peer was not protected");
+        other.send(spriteface::seal_packet(hello(other_client), token));
+        expect(nlohmann::json::parse(spriteface::open_packet(other.reply(), token))["type"] == "busy",
+               "active peer was not protected");
         eventually([&] { return !receiver.snapshot().fresh; });
-        other.send(spriteface::encode_face_packet(frame, token));
+        other.send(replay); // An old session cannot take over after the timeout.
+        eventually([&] { return receiver.snapshot().rejected == 6; });
+        other.send(spriteface::seal_packet(hello(other_client), token));
+        const auto next = nlohmann::json::parse(spriteface::open_packet(other.reply(), token));
+        expect(next["type"] == "ready" && next["server"] != server, "server challenge was reused");
+        const std::string next_server = next["server"];
+        sender.send(replay); // Replay from the previous connection after handover.
+        eventually([&] { return receiver.snapshot().rejected == 7; });
+        other.send(frame_packet(frame, token, other_client, next_server));
         eventually([&] { return receiver.snapshot().accepted == 3; });
         expect(receiver.snapshot().frame.seq == 1 && receiver.snapshot().fresh, "stale peer handover failed");
         frame.seq = 2; frame.tracking = false;
-        other.send(spriteface::encode_face_packet(frame, token));
+        other.send(frame_packet(frame, token, other_client, next_server));
         eventually([&] { return receiver.snapshot().accepted == 4; });
         expect(!receiver.snapshot().frame.tracking, "explicit tracking loss failed");
     }
@@ -148,6 +187,6 @@ void receiver_test() {
 }
 }
 int main() {
-    try { parser_test(); filter_test(); receiver_test(); std::cout << "Protocol, filtering, and loopback receiver tests passed\n"; }
+    try { parser_test(); filter_test(); encryption_test(); receiver_test(); std::cout << "Protocol, filtering, and loopback receiver tests passed\n"; }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

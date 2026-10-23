@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 samiosu
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Send synthetic SF1 motion to SpriteFace; this does not access a camera."""
+"""Send synthetic SF2 motion to SpriteFace; this does not access a camera."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import sys
 import time
 
 from openseeface_adapter import (
-    SF1Sender, add_sender_arguments, clamp01, finite_argument, neutral_values,
+    SF2Sender, add_sender_arguments, clamp01, finite_argument, neutral_values,
 )
 
 
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("fps must be 1..240 and duration must be nonnegative")
     sender = None
     try:
-        sender = SF1Sender(args.host, args.port, args.token)
+        sender = SF2Sender(args.host, args.port, args.token)
         print(f"Synthetic motion demo -> {args.host}:{args.port}; no camera is used", flush=True)
         start = time.monotonic()
         next_frame = start

@@ -33,7 +33,7 @@ cd spritestudio_facetrack_live
 Ubuntu／Debianの開発環境例:
 
 ```bash
-sudo apt-get install build-essential cmake ninja-build git libgl1-mesa-dev \
+sudo apt-get install build-essential cmake ninja-build git libssl-dev libgl1-mesa-dev \
   libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel 4
@@ -67,6 +67,7 @@ GUIを開くとデモキャラが表示されます。「Manual test input」で
 コピーしたセッショントークンを使って実行します。
 
 ```bash
+python3 -m pip install -r tools/requirements.txt
 python3 tools/send_demo.py --token YOUR_SESSION_TOKEN
 ```
 
@@ -93,7 +94,7 @@ python3 tools/send_demo.py --token YOUR_SESSION_TOKEN
 初期版は、同じ信頼できるLAN内のPCとスマホ1台を対象にしています。
 必要に応じてPCのファイアウォールでUDP 11574を許可してください。
 映像はスマホ内で顔認識に使い、PCには顔の数値を送ります。
-UDP転送は暗号化されません。[通信仕様](protocol/README.md)を参照してください。
+UDP転送はペアリングトークンを鍵としてAES-GCMで暗号化・認証します。従来の平文形式は受信しません。[通信仕様](protocol/README.md)を参照してください。
 
 ## PCカメラを使う
 
@@ -102,10 +103,11 @@ OpenSeeFace側は **127.0.0.1:11573** へ送信してください。
 別ターミナルで、GUIのトークンを指定して変換アダプターを実行します。
 
 ```bash
+python3 -m pip install -r tools/requirements.txt
 python3 tools/openseeface_adapter.py --token YOUR_SESSION_TOKEN
 ```
 
-OpenSeeFaceのバイナリ形式を、アプリが受け取るSF1 JSONへ変換します。
+OpenSeeFaceのバイナリ形式を、アプリが受け取る暗号化されたSF2 UDPへ変換します。
 OpenSeeFaceを直接11574へ送信しても動きません。
 表情の値はOpenSeeFace側のキャリブレーションにも依存します。
 

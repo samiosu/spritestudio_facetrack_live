@@ -9,7 +9,7 @@ struct Pairing {
         case invalidURI, invalidHost, invalidPort, invalidToken
         var errorDescription: String? {
             switch self {
-            case .invalidURI: return "spriteface://pair?v=1&host=...&port=...&token=... 形式の接続URIを入力してください。"
+            case .invalidURI: return "spriteface://pair?v=2&host=...&port=...&token=... 形式の接続URIを入力してください。"
             case .invalidHost: return "PCのIPv4アドレスを入力してください。0.0.0.0・マルチキャスト・ブロードキャストは使えません。"
             case .invalidPort: return "ポート番号は1〜65535で入力してください。"
             case .invalidToken: return "PCが表示した32桁の16進トークンを入力してください。"
@@ -45,7 +45,7 @@ struct Pairing {
               components.port == nil, components.fragment == nil,
               let items = components.queryItems, items.count == 4,
               Set(items.map(\.name)) == Set(["v", "host", "port", "token"]),
-              let version = items.first(where: { $0.name == "v" })?.value, version == "1",
+              let version = items.first(where: { $0.name == "v" })?.value, version == "2",
               let host = items.first(where: { $0.name == "host" })?.value,
               let port = items.first(where: { $0.name == "port" })?.value,
               let token = items.first(where: { $0.name == "token" })?.value else {

@@ -1,4 +1,5 @@
 #include "spriteface/face.hpp"
+#include "spriteface/secure_packet.hpp"
 #include <nlohmann/json.hpp>
 #include <atomic>
 #include <array>
@@ -44,6 +45,11 @@ struct FaceReceiver::Impl {
     bool have_frame = false;
     std::uint16_t bound_port = 0;
     std::string token;
+    std::string session_peer;
+    std::string session_client;
+    std::string session_server;
+    bool have_sequence = false;
+    std::uint32_t last_sequence = 0;
 #ifdef _WIN32
     bool winsock_started = false;
 #endif
@@ -71,31 +77,48 @@ struct FaceReceiver::Impl {
             try {
                 if (size == 0 || size > 2048) throw std::invalid_argument("invalid packet size");
                 const std::string_view bytes(buffer.data(), static_cast<std::size_t>(size));
-                const auto j = nlohmann::json::parse(bytes.begin(), bytes.end());
+                const auto plaintext = open_packet(bytes, token);
+                const auto j = nlohmann::json::parse(plaintext);
+                const auto name = endpoint(sender);
                 if (j.value("type", std::string{}) == "hello") {
                     if (!j.at("v").is_number_integer() || j.at("v") != 1 || !j.at("token").is_string() || normalize_session_token(j.at("token").get<std::string>()) != token)
                         throw std::invalid_argument("invalid hello");
-                    const auto name = endpoint(sender);
+                    const auto client = normalize_session_token(j.at("client").get<std::string>());
                     bool busy;
                     {
                         std::lock_guard<std::mutex> lock(mutex);
-                        busy = have_frame && name != sample.peer && Clock::now() - received < std::chrono::milliseconds(800);
+                        busy = have_frame && name != session_peer && Clock::now() - received < std::chrono::milliseconds(800);
+                        if (!busy && (session_peer != name || session_client != client)) {
+                            session_peer = name;
+                            session_client = client;
+                            session_server = secure_random_hex();
+                            have_sequence = false;
+                            have_frame = false;
+                        }
                     }
-                    const std::string response = busy ? "{\"v\":1,\"type\":\"busy\"}" : "{\"v\":1,\"type\":\"ready\"}";
+                    const auto response = seal_packet(nlohmann::json{
+                        {"v", 1}, {"type", busy ? "busy" : "ready"}, {"client", client},
+                        {"server", busy ? "" : session_server}
+                    }.dump(), token);
                     sendto(socket, response.data(), static_cast<int>(response.size()), 0,
                            reinterpret_cast<const sockaddr*>(&sender), sender_length);
                     continue;
                 }
-                const auto frame = parse_face_packet(bytes, token);
+                const auto client = normalize_session_token(j.at("client").get<std::string>());
+                const auto server = normalize_session_token(j.at("server").get<std::string>());
+                const auto frame = parse_face_packet(plaintext, token);
                 const auto now = Clock::now();
-                const auto name = endpoint(sender);
                 std::lock_guard<std::mutex> lock(mutex);
-                const bool expired = !have_frame || now - received >= std::chrono::milliseconds(800);
-                if (!expired) {
-                    if (name != sample.peer) { ++sample.rejected; continue; }
-                    const std::uint32_t delta = frame.seq - sample.frame.seq;
+                if (name != session_peer || client != session_client || server != session_server) {
+                    ++sample.rejected;
+                    continue;
+                }
+                if (have_sequence) {
+                    const std::uint32_t delta = frame.seq - last_sequence;
                     if (delta == 0 || delta >= 0x80000000u) { ++sample.rejected; continue; }
                 }
+                last_sequence = frame.seq;
+                have_sequence = true;
                 sample.frame = frame;
                 sample.peer = name;
                 ++sample.accepted;
@@ -143,6 +166,10 @@ void FaceReceiver::start(const std::string& bind_address, std::uint16_t port, co
         std::lock_guard<std::mutex> lock(impl_->mutex);
         impl_->sample = FaceSnapshot{};
         impl_->have_frame = false;
+        impl_->session_peer.clear();
+        impl_->session_client.clear();
+        impl_->session_server.clear();
+        impl_->have_sequence = false;
     }
     impl_->running.store(true);
     try { impl_->worker = std::thread([this] { impl_->receive(); }); }

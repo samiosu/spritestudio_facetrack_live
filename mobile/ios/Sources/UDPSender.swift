@@ -13,6 +13,9 @@ final class UDPSender {
     private var helloTimer: DispatchSourceTimer?
     private var handshakeDeadline: TimeInterval = 0
     private var receiverReady = false
+    private var cameraStarted = false
+    private var clientChallenge = ""
+    private var serverChallenge = ""
     private var sequence: UInt32 = 0
     private let encoder = JSONEncoder()
 
@@ -20,10 +23,13 @@ final class UDPSender {
         let v = 1
         let type = "hello"
         let token: String
+        let client: String
     }
     private struct Ready: Decodable {
         let v: Int
         let type: String
+        let client: String
+        let server: String
     }
 
     func connect(_ pairing: Pairing) {
@@ -32,6 +38,7 @@ final class UDPSender {
             self.disconnectOnQueue()
             self.pairing = pairing
             self.sequence = 0
+            self.clientChallenge = SecurePacket.challenge()
             let connection = NWConnection(host: NWEndpoint.Host(pairing.host),
                                           port: NWEndpoint.Port(rawValue: pairing.port)!, using: .udp)
             self.connection = connection
@@ -56,13 +63,16 @@ final class UDPSender {
 
     func send(_ frame: FaceFrame) {
         queue.async { [weak self] in
-            guard let self = self, self.receiverReady,
+            guard let self = self, self.receiverReady, !self.serverChallenge.isEmpty,
                   let connection = self.connection, let pairing = self.pairing else { return }
             var frame = frame
             frame.token = pairing.token
+            frame.client = self.clientChallenge
+            frame.server = self.serverChallenge
             frame.seq = self.sequence
             self.sequence &+= 1
-            guard let data = try? self.encoder.encode(frame) else { return }
+            guard let plain = try? self.encoder.encode(frame),
+                  let data = try? SecurePacket.seal(plain, token: pairing.token) else { return }
             self.send(data, on: connection)
         }
     }
@@ -77,10 +87,14 @@ final class UDPSender {
             }
             var neutral = FaceFrame.neutral(token: pairing.token)
             neutral.seq = self.sequence
+            neutral.client = self.clientChallenge
+            neutral.server = self.serverChallenge
             self.receiverReady = false
             self.helloTimer?.cancel()
             self.helloTimer = nil
-            let data = try? self.encoder.encode(neutral)
+            let data = (try? self.encoder.encode(neutral)).flatMap {
+                try? SecurePacket.seal($0, token: pairing.token)
+            }
             // Keep a strong reference until the final datagram has reached the network stack.
             connection.send(content: data, completion: .contentProcessed { [weak self, connection] _ in
                 connection.cancel()
@@ -92,17 +106,19 @@ final class UDPSender {
 
     private func beginHandshake(on connection: NWConnection) {
         guard let pairing = pairing else { return }
-        let data = try? encoder.encode(Hello(token: pairing.token))
         handshakeDeadline = ProcessInfo.processInfo.systemUptime + 10
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: .seconds(1))
         timer.setEventHandler { [weak self, weak connection] in
             guard let self = self, let connection = connection, self.connection === connection else { return }
-            if ProcessInfo.processInfo.systemUptime > self.handshakeDeadline {
+            if !self.receiverReady && !self.cameraStarted && ProcessInfo.processInfo.systemUptime > self.handshakeDeadline {
                 self.fail("PCの応答がありません。接続先・トークン・PCの入力設定・ファイアウォールを確認してください。")
                 return
             }
-            if let data = data { self.send(data, on: connection) }
+            if let plain = try? self.encoder.encode(Hello(token: pairing.token, client: self.clientChallenge)),
+               let data = try? SecurePacket.seal(plain, token: pairing.token) {
+                self.send(data, on: connection)
+            }
         }
         helloTimer?.cancel()
         helloTimer = timer
@@ -117,13 +133,23 @@ final class UDPSender {
                 self.fail("PCからの応答受信に失敗しました: \(error.localizedDescription)")
                 return
             }
-            if !self.receiverReady, let data = data, data.count <= 1024,
-               let ready = try? JSONDecoder().decode(Ready.self, from: data), ready.v == 1, ready.type == "ready" {
-                self.receiverReady = true
-                self.helloTimer?.cancel()
-                self.helloTimer = nil
-                self.status("PCに接続しました。カメラを準備しています…")
-                DispatchQueue.main.async { [weak self] in self?.onReady?() }
+            if let data = data, data.count <= 1024, let pairing = self.pairing,
+               let plain = try? SecurePacket.open(data, token: pairing.token),
+               let ready = try? JSONDecoder().decode(Ready.self, from: plain),
+               ready.v == 1, ready.client == self.clientChallenge {
+                if ready.type == "ready" && SecurePacket.validChallenge(ready.server) {
+                    if self.serverChallenge != ready.server { self.sequence = 0 }
+                    self.serverChallenge = ready.server
+                    if !self.receiverReady { self.status("PCに接続しました。カメラを準備しています…") }
+                    self.receiverReady = true
+                    if !self.cameraStarted {
+                        self.cameraStarted = true
+                        DispatchQueue.main.async { [weak self] in self?.onReady?() }
+                    }
+                } else if ready.type == "busy" {
+                    self.receiverReady = false
+                    self.serverChallenge = ""
+                }
             }
             self.receive(on: connection)
         }
@@ -138,6 +164,9 @@ final class UDPSender {
 
     private func disconnectOnQueue() {
         receiverReady = false
+        cameraStarted = false
+        clientChallenge = ""
+        serverChallenge = ""
         helloTimer?.cancel()
         helloTimer = nil
         connection?.stateUpdateHandler = nil

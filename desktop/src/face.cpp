@@ -1,10 +1,9 @@
 #include "spriteface/face.hpp"
+#include "spriteface/secure_packet.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cctype>
-#include <iomanip>
-#include <random>
 #include <sstream>
 #include <stdexcept>
 
@@ -64,11 +63,7 @@ std::string encode_face_packet(const FaceFrame& f, std::string_view token) {
         {"mouth",{{"open",f.mouth_open},{"smile",f.mouth_smile}}}}.dump();
 }
 std::string make_session_token() {
-    std::random_device random;
-    std::ostringstream result;
-    result << std::hex << std::setfill('0');
-    for (int i = 0; i < 16; ++i) result << std::setw(2) << (random() & 255u);
-    return result.str();
+    return secure_random_hex();
 }
 std::string normalize_session_token(std::string_view token) {
     if (token.size() != 32 || token.find_first_not_of("0123456789abcdefABCDEF") != std::string_view::npos)
@@ -90,7 +85,7 @@ std::string make_pairing_uri(std::string_view host, std::uint16_t port, std::str
         ++count;
     }
     if (count != 4 || host.back() == '.' || first == 0 || first >= 224) throw std::invalid_argument("invalid unicast pairing host");
-    return "spriteface://pair?v=1&host=" + std::string(host) + "&port=" + std::to_string(port) + "&token=" + normalize_session_token(token);
+    return "spriteface://pair?v=2&host=" + std::string(host) + "&port=" + std::to_string(port) + "&token=" + normalize_session_token(token);
 }
 FaceFrame FaceFilter::update(const FaceSnapshot& sample, float dt_seconds) {
     const FaceFrame target = sample.fresh && sample.frame.tracking ? sample.frame : FaceFrame{};

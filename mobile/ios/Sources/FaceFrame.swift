@@ -18,6 +18,8 @@ struct FaceFrame: Codable {
     var v = 1
     var type = "frame"
     var token: String
+    var client: String = ""
+    var server: String = ""
     var seq: UInt32 = 0
     var tracking = false
     var confidence: Double = 0
